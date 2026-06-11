@@ -2,6 +2,13 @@
 
 Small git worktree helper CLI, focused on ergonomics.
 
+> [!WARNING]
+>
+> This CLI, while lightweight, is not battle-tested.  
+> It should not have any destructive behavior, but be sure to commit or stash changes before using it just in case.
+
+---
+
 ## Installation
 
 ```sh
