@@ -19,7 +19,6 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     env:
-      RELEASE_PR_BRANCH: release-please--branches--main
       RELEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
     steps:
       - name: Check out repository
@@ -69,11 +68,28 @@ jobs:
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
 
+      - name: Resolve release PR branch
+        id: release_pr
+        if: ${{ steps.release.outputs.prs_created == 'true' }}
+        env:
+          RELEASE_PR: ${{ steps.release.outputs.pr }}
+        run: |
+          set -euo pipefail
+
+          branch=$(jq -r '.headBranchName // empty' <<< "$RELEASE_PR")
+          if [ -z "$branch" ]; then
+            echo "::error::Release Please did not expose a PR branch name."
+            echo "$RELEASE_PR"
+            exit 1
+          fi
+
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
       - name: Check out release PR branch
         if: ${{ steps.release.outputs.prs_created == 'true' }}
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.RELEASE_PR_BRANCH }}
+          ref: ${{ steps.release_pr.outputs.branch }}
           token: ${{ env.RELEASE_TOKEN }}
 
       - name: Install Rust
@@ -82,6 +98,8 @@ jobs:
 
       - name: Sync Cargo.lock after version bump
         if: ${{ steps.release.outputs.prs_created == 'true' }}
+        env:
+          RELEASE_PR_BRANCH: ${{ steps.release_pr.outputs.branch }}
         run: |
           cargo metadata --format-version 1 > /dev/null
 
