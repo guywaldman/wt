@@ -1,7 +1,7 @@
 use std::{
     env, fs,
     path::{Path, PathBuf},
-    process::{Command, Output},
+    process::{Command, Output, Stdio},
 };
 
 use tempfile::TempDir;
@@ -40,12 +40,17 @@ pub fn assert_init_wrapper_switches_cwd(shell: &str, script: &str) {
     assert_eq!(stdout(output).trim(), fs::canonicalize(feature).unwrap().display().to_string());
 }
 
+pub fn command_exists(command: &str) -> bool {
+    Command::new(command)
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok()
+}
+
 pub fn wt(repo: &Path, args: &[&str]) -> Output {
-    Command::new(wt_bin())
-        .current_dir(repo)
-        .args(args)
-        .output()
-        .unwrap()
+    Command::new(wt_bin()).current_dir(repo).args(args).output().unwrap()
 }
 
 pub fn git(cwd: &Path, args: &[&str]) {
