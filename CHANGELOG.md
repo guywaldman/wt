@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/guywaldman/wt/compare/v0.1.3...v0.1.4) (2026-06-11)
+
+
+### Bug Fixes
+
+* path argument should assume a base path of worktree root ([7e7dca9](https://github.com/guywaldman/wt/commit/7e7dca973a55deee8227d2eb99415a845f417630))
+
 ## [0.1.3](https://github.com/guywaldman/wt/compare/v0.1.2...v0.1.3) (2026-06-11)
 
 
