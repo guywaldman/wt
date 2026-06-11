@@ -47,3 +47,20 @@ fn respects_pathspecs_after_double_dash() {
     assert_eq!(fs::read_to_string(feature.join("README.md")).unwrap(), "hello\nreadme change\n");
     assert_eq!(fs::read_to_string(feature.join("OTHER.md")).unwrap(), "other\n");
 }
+
+#[test]
+fn ignores_inherited_git_hook_env() {
+    let (temp, repo) = setup_repo();
+    let feature = temp.path().join("feature");
+
+    fs::write(repo.join("README.md"), "hello\nsource change\n").unwrap();
+
+    assert_success(wt_with_env(
+        &repo,
+        &["fork", "feature"],
+        &[("GIT_DIR", ".git"), ("GIT_INDEX_FILE", ".git/index")],
+    ));
+
+    assert_eq!(fs::read_to_string(feature.join("README.md")).unwrap(), "hello\nsource change\n");
+    assert_eq!(stdout(git_output(&feature, &["status", "--short"])), " M README.md\n");
+}

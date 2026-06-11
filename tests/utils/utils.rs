@@ -6,6 +6,18 @@ use std::{
 
 use tempfile::TempDir;
 
+const GIT_REPOSITORY_ENV_VARS: &[&str] = &[
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_IMPLICIT_WORK_TREE",
+    "GIT_INDEX_FILE",
+    "GIT_PREFIX",
+    "GIT_SHALLOW_FILE",
+    "GIT_COMMON_DIR",
+];
+
 pub fn setup_repo() -> (TempDir, PathBuf) {
     let temp = tempfile::tempdir().unwrap();
     git(temp.path(), &["init", "-q", "--initial-branch", "main", "repo"]);
@@ -51,6 +63,12 @@ pub fn command_exists(command: &str) -> bool {
 
 pub fn wt(repo: &Path, args: &[&str]) -> Output {
     Command::new(wt_bin()).current_dir(repo).args(args).output().unwrap()
+}
+
+pub fn wt_with_env(repo: &Path, args: &[&str], envs: &[(&str, &str)]) -> Output {
+    let mut command = Command::new(wt_bin());
+    command.current_dir(repo).args(args).envs(envs.iter().copied());
+    command.output().unwrap()
 }
 
 pub fn git(cwd: &Path, args: &[&str]) {
@@ -99,8 +117,15 @@ fn wt_bin() -> PathBuf {
 
 fn git_command(cwd: &Path, args: &[&str]) -> Command {
     let mut command = Command::new("git");
+    clear_git_env(&mut command);
     command.current_dir(cwd).args(args);
     command
+}
+
+fn clear_git_env(command: &mut Command) {
+    for key in GIT_REPOSITORY_ENV_VARS {
+        command.env_remove(key);
+    }
 }
 
 fn assert_success_status(output: &Output) {

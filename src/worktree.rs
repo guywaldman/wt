@@ -123,8 +123,8 @@ impl<'repo> WorktreeManager<'repo> {
             )?;
         }
 
-        fs::write(target_path.join(".git"), format!("gitdir: {}\n", admin_dir.display()))?;
-        fs::write(admin_dir.join("gitdir"), format!("{}\n", target_path.join(".git").display()))?;
+        fs::write(target_path.join(".git"), format!("gitdir: {}\n", git_file_path(&admin_dir)))?;
+        fs::write(admin_dir.join("gitdir"), format!("{}\n", git_file_path(&target_path.join(".git"))))?;
         fs::write(admin_dir.join("commondir"), "../..\n")?;
         fs::write(admin_dir.join("HEAD"), format!("ref: {}\n", plan.branch_ref))?;
 
@@ -344,5 +344,41 @@ fn absolute_path(path: &Path) -> Result<PathBuf> {
         Ok(path.to_owned())
     } else {
         Ok(env::current_dir()?.join(path))
+    }
+}
+
+/// Format paths for Git control files, which reject Windows verbatim prefixes.
+fn git_file_path(path: &Path) -> String {
+    strip_windows_verbatim_prefix(&path.display().to_string())
+}
+
+fn strip_windows_verbatim_prefix(path: &str) -> String {
+    if let Some(path) = path.strip_prefix("\\\\?\\UNC\\") {
+        format!("\\\\{path}")
+    } else if let Some(path) = path.strip_prefix("\\\\?\\") {
+        path.to_owned()
+    } else {
+        path.to_owned()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::strip_windows_verbatim_prefix;
+
+    #[test]
+    fn strips_windows_verbatim_drive_prefix() {
+        assert_eq!(strip_windows_verbatim_prefix(r"\\?\C:\tmp\repo"), r"C:\tmp\repo");
+    }
+
+    #[test]
+    fn strips_windows_verbatim_unc_prefix() {
+        assert_eq!(strip_windows_verbatim_prefix(r"\\?\UNC\server\share\repo"), r"\\server\share\repo");
+    }
+
+    #[test]
+    fn keeps_normal_paths_unchanged() {
+        assert_eq!(strip_windows_verbatim_prefix("/tmp/repo"), "/tmp/repo");
+        assert_eq!(strip_windows_verbatim_prefix(r"C:\tmp\repo"), r"C:\tmp\repo");
     }
 }

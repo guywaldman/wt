@@ -8,6 +8,18 @@ use log::debug;
 
 use crate::{Result, error, fail};
 
+const GIT_REPOSITORY_ENV_VARS: &[&str] = &[
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_IMPLICIT_WORK_TREE",
+    "GIT_INDEX_FILE",
+    "GIT_PREFIX",
+    "GIT_SHALLOW_FILE",
+    "GIT_COMMON_DIR",
+];
+
 /// Capture a binary diff from the source worktree.
 pub(crate) fn diff(workdir: &Path, staged: bool, paths: &[PathBuf]) -> Result<Vec<u8>> {
     let mut args = vec!["diff", "--binary"];
@@ -21,6 +33,7 @@ pub(crate) fn diff(workdir: &Path, staged: bool, paths: &[PathBuf]) -> Result<Ve
 /// Apply a captured binary diff to the target worktree.
 pub(crate) fn apply(workdir: &Path, staged: bool, input: &[u8]) -> Result<()> {
     let mut command = Command::new("git");
+    clear_git_env(&mut command);
     command
         .current_dir(workdir)
         .arg("apply")
@@ -49,6 +62,7 @@ pub(crate) fn apply(workdir: &Path, staged: bool, input: &[u8]) -> Result<()> {
 
 fn git_output(workdir: &Path, args: &[&str], paths: &[PathBuf]) -> Result<Vec<u8>> {
     let mut command = Command::new("git");
+    clear_git_env(&mut command);
     command.current_dir(workdir).args(args);
     if !paths.is_empty() {
         command.arg("--").args(paths);
@@ -61,4 +75,10 @@ fn git_output(workdir: &Path, args: &[&str], paths: &[PathBuf]) -> Result<Vec<u8
     }
 
     Ok(output.stdout)
+}
+
+fn clear_git_env(command: &mut Command) {
+    for key in GIT_REPOSITORY_ENV_VARS {
+        command.env_remove(key);
+    }
 }
