@@ -22,16 +22,16 @@ impl<'repo> WorktreeManager<'repo> {
     }
 
     /// Create a branch worktree, failing if the branch is already checked out.
-    pub(crate) fn create(&self, branch: &str, dir: Option<&Path>) -> Result<PathBuf> {
-        self.create_from_plan(self.create_plan(branch, dir)?)
+    pub(crate) fn create(&self, branch: &str, path: Option<&Path>) -> Result<PathBuf> {
+        self.create_from_plan(self.create_plan(branch, path)?)
     }
 
     /// Return an existing branch worktree or create it from the current HEAD.
-    pub(crate) fn resolve_or_create(&self, branch: &str, dir: Option<&Path>) -> Result<ResolvedWorktree> {
+    pub(crate) fn resolve_or_create(&self, branch: &str, path: Option<&Path>) -> Result<ResolvedWorktree> {
         match self.checked_out_path(branch)? {
             Some(path) => Ok(ResolvedWorktree { path, created: false }),
             None => Ok(ResolvedWorktree {
-                path: self.create(branch, dir)?,
+                path: self.create(branch, path)?,
                 created: true,
             }),
         }
@@ -59,7 +59,7 @@ impl<'repo> WorktreeManager<'repo> {
     }
 
     /// Validate paths and branch checkout data before touching disk.
-    fn create_plan(&self, branch: &str, dir: Option<&Path>) -> Result<WorktreeCreatePlan> {
+    fn create_plan(&self, branch: &str, path: Option<&Path>) -> Result<WorktreeCreatePlan> {
         let main_path = main_worktree_path(self.repo)?;
         debug!("preparing worktree for branch '{branch}'");
 
@@ -68,15 +68,12 @@ impl<'repo> WorktreeManager<'repo> {
             return fail(format!("branch '{branch}' is already checked out at {}", path.display()));
         }
 
-        let worktree_name = worktree_name(branch)?;
-        let parent_dir = match dir {
-            Some(dir) => absolute_path(dir)?,
-            None => main_path
-                .parent()
-                .ok_or_else(|| error("main worktree has no parent directory"))?
-                .to_owned(),
+        let worktree_root = main_path.parent().ok_or_else(|| error("main worktree has no parent directory"))?;
+        let target_path = match path {
+            Some(path) => worktree_root_path(worktree_root, path),
+            None => worktree_root.join(default_worktree_name(branch)?),
         };
-        let target_path = parent_dir.join(&worktree_name);
+        let worktree_name = worktree_name(&target_path)?;
         let admin_dir = fs::canonicalize(self.repo.common_dir())?.join("worktrees").join(&worktree_name);
 
         if target_path.exists() {
@@ -318,12 +315,20 @@ fn branch_ref(branch: &str) -> String {
     format!("refs/heads/{branch}")
 }
 
-fn worktree_name(branch: &str) -> Result<String> {
+fn default_worktree_name(branch: &str) -> Result<String> {
     if branch.is_empty() {
         return fail("branch must not be empty");
     }
 
     Ok(branch.replace('/', "-"))
+}
+
+fn worktree_name(path: &Path) -> Result<String> {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .filter(|name| !name.is_empty())
+        .map(ToOwned::to_owned)
+        .ok_or_else(|| error("worktree path has no directory name").into())
 }
 
 /// Resolve the main worktree path from the repository common dir.
@@ -339,11 +344,11 @@ fn main_worktree_path(repo: &gix::Repository) -> Result<PathBuf> {
     Ok(fs::canonicalize(path)?)
 }
 
-fn absolute_path(path: &Path) -> Result<PathBuf> {
+fn worktree_root_path(worktree_root: &Path, path: &Path) -> PathBuf {
     if path.is_absolute() {
-        Ok(path.to_owned())
+        path.to_owned()
     } else {
-        Ok(env::current_dir()?.join(path))
+        worktree_root.join(path)
     }
 }
 

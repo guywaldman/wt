@@ -3,8 +3,8 @@ use utils::*;
 
 #[test]
 fn deletes_clean_worktree_and_metadata() {
-    let (temp, repo) = setup_repo();
-    let feature = temp.path().join("feature");
+    let (root, repo) = setup_repo();
+    let feature = root.path().join("feature");
     let metadata = repo.join(".git/worktrees/feature");
 
     assert_success(wt(&repo, &["add", "feature"]));
@@ -16,8 +16,8 @@ fn deletes_clean_worktree_and_metadata() {
 
 #[test]
 fn requires_force_for_dirty_worktree() {
-    let (temp, repo) = setup_repo();
-    let feature = temp.path().join("feature");
+    let (root, repo) = setup_repo();
+    let feature = root.path().join("feature");
 
     assert_success(wt(&repo, &["add", "feature"]));
     fs::write(feature.join("scratch.txt"), "dirty\n").unwrap();

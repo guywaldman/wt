@@ -2,8 +2,8 @@ use utils::*;
 
 #[test]
 fn prints_existing_worktree_path() {
-    let (temp, repo) = setup_repo();
-    let feature = temp.path().join("feature");
+    let (root, repo) = setup_repo();
+    let feature = root.path().join("feature");
 
     assert_success(wt(&repo, &["add", "feature"]));
 
@@ -16,8 +16,8 @@ fn prints_existing_worktree_path() {
 
 #[test]
 fn creates_missing_worktree() {
-    let (temp, repo) = setup_repo();
-    let feature = temp.path().join("feature");
+    let (root, repo) = setup_repo();
+    let feature = root.path().join("feature");
 
     let output = stdout(wt(&repo, &["switch", "feature"]));
 
@@ -26,12 +26,11 @@ fn creates_missing_worktree() {
 }
 
 #[test]
-fn accepts_parent_dir() {
-    let (temp, repo) = setup_repo();
-    let parent = temp.path().join("custom");
-    let path = parent.join("feature");
+fn accepts_target_path() {
+    let (root, repo) = setup_repo();
+    let path = root.path().join("custom-feature");
 
-    let output = stdout(wt(&repo, &["switch", "feature", parent.to_str().unwrap()]));
+    let output = stdout(wt(&repo, &["switch", "feature", path.to_str().unwrap()]));
 
     assert_path_eq(output.trim(), &path);
 }

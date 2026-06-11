@@ -2,8 +2,8 @@ use utils::*;
 
 #[test]
 fn shows_main_and_linked_worktrees() {
-    let (temp, repo) = setup_repo();
-    let feature = temp.path().join("feature-one");
+    let (root, repo) = setup_repo();
+    let feature = root.path().join("feature-one");
 
     assert_success(wt(&repo, &["add", "feature/one"]));
 

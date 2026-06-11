@@ -19,10 +19,10 @@ const GIT_REPOSITORY_ENV_VARS: &[&str] = &[
 ];
 
 pub fn setup_repo() -> (TempDir, PathBuf) {
-    let temp = tempfile::tempdir().unwrap();
-    git(temp.path(), &["init", "-q", "--initial-branch", "main", "repo"]);
+    let root = tempfile::tempdir().unwrap();
+    git(root.path(), &["init", "-q", "--initial-branch", "main", "repo"]);
 
-    let repo = temp.path().join("repo");
+    let repo = root.path().join("repo");
     git(&repo, &["config", "user.email", "a@example.com"]);
     git(&repo, &["config", "user.name", "A"]);
     git(&repo, &["config", "core.autocrlf", "false"]);
@@ -30,12 +30,12 @@ pub fn setup_repo() -> (TempDir, PathBuf) {
     git(&repo, &["add", "README.md"]);
     git(&repo, &["commit", "-q", "-m", "initial"]);
 
-    (temp, repo)
+    (root, repo)
 }
 
 pub fn assert_init_wrapper_switches_cwd(shell: &str, script: &str) {
-    let (temp, repo) = setup_repo();
-    let feature = temp.path().join("feature");
+    let (root, repo) = setup_repo();
+    let feature = root.path().join("feature");
     let wt_bin = wt_bin();
     let bin_dir = wt_bin.parent().unwrap();
     let old_path = env::var_os("PATH").unwrap_or_default();

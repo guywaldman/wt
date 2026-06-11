@@ -2,7 +2,7 @@ use utils::*;
 
 #[test]
 fn emits_completion_and_cwd_switching_wrapper() {
-    let (_temp, repo) = setup_repo();
+    let (_root, repo) = setup_repo();
 
     let init = stdout(wt(&repo, &["init", "zsh"]));
 

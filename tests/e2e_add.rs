@@ -2,8 +2,8 @@ use utils::*;
 
 #[test]
 fn creates_branch_worktree() {
-    let (temp, repo) = setup_repo();
-    let feature = temp.path().join("feature-one");
+    let (root, repo) = setup_repo();
+    let feature = root.path().join("feature-one");
 
     assert_success(wt(&repo, &["add", "feature/one"]));
 
@@ -13,19 +13,46 @@ fn creates_branch_worktree() {
 }
 
 #[test]
-fn accepts_parent_dir() {
-    let (temp, repo) = setup_repo();
-    let parent = temp.path().join("custom");
-    let path = parent.join("feature");
+fn accepts_target_path() {
+    let (root, repo) = setup_repo();
+    let path = root.path().join("custom-feature");
 
-    assert_success(wt(&repo, &["add", "feature", parent.to_str().unwrap()]));
+    assert_success(wt(&repo, &["add", "feature", path.to_str().unwrap()]));
 
     assert!(path.is_dir());
 }
 
 #[test]
+fn accepts_slashy_branch_with_explicit_target_path() {
+    let (root, _repo) = setup_repo();
+    let path = root.path().join("my-feature");
+
+    assert_success(wt(root.path(), &["add", "user/foo/my-feature", "my-feature"]));
+
+    assert!(path.is_dir());
+    assert!(!path.join("user-foo-my-feature").exists());
+    let branch = stdout(git_output(&path, &["branch", "--show-current"]));
+    assert_eq!(branch.trim(), "user/foo/my-feature");
+}
+
+#[test]
+fn resolves_relative_target_path_from_linked_worktree_root() {
+    let (root, repo) = setup_repo();
+    let feature = root.path().join("feature");
+    let path = root.path().join("my-feature");
+
+    assert_success(wt(&repo, &["add", "feature"]));
+    assert_success(wt(&feature, &["add", "user/foo/my-feature", "my-feature"]));
+
+    assert!(path.is_dir());
+    assert!(!feature.join("my-feature").exists());
+    let branch = stdout(git_output(&path, &["branch", "--show-current"]));
+    assert_eq!(branch.trim(), "user/foo/my-feature");
+}
+
+#[test]
 fn duplicate_fails() {
-    let (_temp, repo) = setup_repo();
+    let (_root, repo) = setup_repo();
 
     assert_success(wt(&repo, &["add", "feature"]));
     let output = wt(&repo, &["add", "feature"]);
@@ -36,7 +63,7 @@ fn duplicate_fails() {
 
 #[test]
 fn derived_path_collision_does_not_create_branch() {
-    let (_temp, repo) = setup_repo();
+    let (_root, repo) = setup_repo();
 
     assert_success(wt(&repo, &["add", "feature-foo"]));
     let output = wt(&repo, &["add", "feature/foo"]);

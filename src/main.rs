@@ -72,22 +72,22 @@ enum Commands {
         /// Branch to switch to.
         #[arg(value_name = "BRANCH")]
         branch: String,
-        /// Parent directory for a newly created worktree.
+        /// Path for a newly created worktree.
         ///
-        /// Defaults to the main worktree's parent directory.
-        #[arg(value_name = "DIR", value_hint = ValueHint::DirPath)]
-        dir: Option<PathBuf>,
+        /// Relative paths resolve from the worktree root. Defaults to a sibling of the main worktree.
+        #[arg(value_name = "PATH", value_hint = ValueHint::DirPath)]
+        path: Option<PathBuf>,
     },
     /// Create a worktree for BRANCH.
     Add {
         /// Branch to create or check out.
         #[arg(value_name = "BRANCH")]
         branch: String,
-        /// Parent directory for the new worktree.
+        /// Path for the new worktree.
         ///
-        /// Defaults to the main worktree's parent directory.
-        #[arg(value_name = "DIR", value_hint = ValueHint::DirPath)]
-        dir: Option<PathBuf>,
+        /// Relative paths resolve from the worktree root. Defaults to a sibling of the main worktree.
+        #[arg(value_name = "PATH", value_hint = ValueHint::DirPath)]
+        path: Option<PathBuf>,
     },
     /// Remove the linked worktree for BRANCH.
     Remove {
@@ -103,11 +103,11 @@ enum Commands {
         /// Target branch for the forked changes.
         #[arg(value_name = "BRANCH")]
         branch: String,
-        /// Parent directory for a newly created target worktree.
+        /// Path for a newly created target worktree.
         ///
-        /// Defaults to the main worktree's parent directory.
-        #[arg(value_name = "DIR", value_hint = ValueHint::DirPath)]
-        dir: Option<PathBuf>,
+        /// Relative paths resolve from the worktree root. Defaults to a sibling of the main worktree.
+        #[arg(value_name = "PATH", value_hint = ValueHint::DirPath)]
+        path: Option<PathBuf>,
         /// Copy staged changes instead of unstaged changes.
         #[arg(long)]
         staged: bool,
@@ -124,15 +124,15 @@ fn run(cli: Cli, out: impl Write) -> Result<()> {
     match cli.command {
         Commands::Init { shell } => init::write(shell, Cli::command(), out),
         Commands::List => list(out),
-        Commands::Switch { branch, dir } => switch(&branch, dir.as_deref(), out),
-        Commands::Add { branch, dir } => add(&branch, dir.as_deref()),
+        Commands::Switch { branch, path } => switch(&branch, path.as_deref(), out),
+        Commands::Add { branch, path } => add(&branch, path.as_deref()),
         Commands::Remove { force, branch } => remove(&branch, force),
         Commands::Fork {
             branch,
-            dir,
+            path,
             staged,
             paths,
-        } => fork(&branch, dir.as_deref(), staged, &paths, out),
+        } => fork(&branch, path.as_deref(), staged, &paths, out),
     }
 }
 
@@ -143,17 +143,17 @@ fn list(mut out: impl Write) -> Result<()> {
 }
 
 /// Create a linked worktree for a branch.
-fn add(branch: &str, dir: Option<&Path>) -> Result<()> {
+fn add(branch: &str, path: Option<&Path>) -> Result<()> {
     let repo = discover_repo()?;
-    let path = WorktreeManager::new(&repo).create(branch, dir)?;
+    let path = WorktreeManager::new(&repo).create(branch, path)?;
     info!("created worktree for branch '{branch}' at {}", path.display());
     Ok(())
 }
 
 /// Print an existing branch worktree path, creating it first if needed.
-fn switch(branch: &str, dir: Option<&Path>, mut out: impl Write) -> Result<()> {
+fn switch(branch: &str, path: Option<&Path>, mut out: impl Write) -> Result<()> {
     let repo = discover_repo()?;
-    let target = WorktreeManager::new(&repo).resolve_or_create(branch, dir)?;
+    let target = WorktreeManager::new(&repo).resolve_or_create(branch, path)?;
     if target.created {
         info!("created switch target for branch '{branch}' at {}", target.path.display());
     } else {
@@ -165,7 +165,7 @@ fn switch(branch: &str, dir: Option<&Path>, mut out: impl Write) -> Result<()> {
 }
 
 /// Copy selected local changes into a target branch worktree.
-fn fork(branch: &str, dir: Option<&Path>, staged: bool, paths: &[PathBuf], mut out: impl Write) -> Result<()> {
+fn fork(branch: &str, path: Option<&Path>, staged: bool, paths: &[PathBuf], mut out: impl Write) -> Result<()> {
     let repo = discover_repo()?;
     let source_path = fs::canonicalize(repo.workdir().ok_or_else(|| error("fork requires a worktree"))?)?;
     debug!(
@@ -179,7 +179,7 @@ fn fork(branch: &str, dir: Option<&Path>, staged: bool, paths: &[PathBuf], mut o
     }
     debug!("captured {} bytes of diff", diff.len());
 
-    let target = WorktreeManager::new(&repo).resolve_or_create(branch, dir)?;
+    let target = WorktreeManager::new(&repo).resolve_or_create(branch, path)?;
     if target.created {
         info!("created fork target for branch '{branch}' at {}", target.path.display());
     } else {

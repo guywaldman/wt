@@ -36,18 +36,20 @@ This enables completions and makes `wt switch` change the current shell's cwd.
 
 ## Commands
 
+Relative `[path]` arguments are resolved from the worktree root, not the current worktree.
+
 ```sh
 # Lists all worktrees as `<branch><tab><path>`.
 wt list
 
 # Creates a worktree for `branch`. If the branch does not exist, it is created from the current `HEAD`.
-wt add <branch> [dir]
+wt add <branch> [path]
 
 # Switches cwd to `branch`'s worktree. Creates it first if it does not exist.
-wt switch <branch> [dir]
+wt switch <branch> [path]
 
 # Copies current changes into `branch`'s worktree. Copies unstaged changes by default; `--staged` copies staged changes and stages them in the target worktree.
-wt fork <branch> [dir] [--staged] [-- <paths>...]
+wt fork <branch> [path] [--staged] [-- <paths>...]
 
 # Removes the linked worktree for `branch`. Refuses dirty worktrees unless `--force` is passed.
 wt remove [--force] <branch>
