@@ -205,6 +205,8 @@ jobs:
 
       - name: Update wt formula
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
