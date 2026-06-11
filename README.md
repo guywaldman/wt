@@ -16,13 +16,13 @@ cargo install --git https://github.com/guywaldman/wt --locked
 
 ```sh
 # zsh
-eval "$(wt init zsh)"
+echo 'eval "$(wt init zsh)"' >> ~/.zshrc
 
 # bash
-eval "$(wt init bash)"
+echo 'eval "$(wt init bash)"' >> ~/.bashrc
 
 # fish
-wt init fish | source
+echo 'wt init fish | source' >> ~/.config/fish/config.fish
 ```
 
 This enables completions and makes `wt switch` change the current shell's cwd.
