@@ -25,6 +25,7 @@ pub fn setup_repo() -> (TempDir, PathBuf) {
     let repo = temp.path().join("repo");
     git(&repo, &["config", "user.email", "a@example.com"]);
     git(&repo, &["config", "user.name", "A"]);
+    git(&repo, &["config", "core.autocrlf", "false"]);
     fs::write(repo.join("README.md"), "hello\n").unwrap();
     git(&repo, &["add", "README.md"]);
     git(&repo, &["commit", "-q", "-m", "initial"]);
