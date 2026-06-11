@@ -1,4 +1,3 @@
-use std::fs;
 use utils::*;
 
 #[test]
@@ -10,11 +9,11 @@ fn commands_work_from_worktree_root() {
     assert!(feature.is_dir());
 
     let list = stdout(wt(temp.path(), &["list"]));
-    assert!(list.contains(&format!("main\t{}", fs::canonicalize(&repo).unwrap().display())));
-    assert!(list.contains(&format!("feature\t{}", fs::canonicalize(&feature).unwrap().display())));
+    assert_worktree_list_contains(&list, "main", &repo);
+    assert_worktree_list_contains(&list, "feature", &feature);
 
     let output = stdout(wt(temp.path(), &["switch", "feature"]));
-    assert_eq!(output.trim(), fs::canonicalize(&feature).unwrap().display().to_string());
+    assert_path_eq(output.trim(), &feature);
 
     assert_success(wt(temp.path(), &["remove", "feature"]));
     assert!(!feature.exists());

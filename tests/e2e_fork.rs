@@ -9,8 +9,8 @@ fn copies_unstaged_changes_to_target_worktree() {
     fs::write(repo.join("README.md"), "hello\nsource change\n").unwrap();
 
     let output = stdout(wt(&repo, &["fork", "feature"]));
-    assert_eq!(output.trim(), fs::canonicalize(&feature).unwrap().display().to_string());
-    assert_eq!(fs::read_to_string(feature.join("README.md")).unwrap(), "hello\nsource change\n");
+    assert_path_eq(output.trim(), &feature);
+    assert_eq!(read_text(feature.join("README.md")), "hello\nsource change\n");
     assert_eq!(stdout(git_output(&repo, &["status", "--short"])), " M README.md\n");
     assert_eq!(stdout(git_output(&feature, &["status", "--short"])), " M README.md\n");
 }
@@ -26,7 +26,7 @@ fn copies_staged_changes_as_staged() {
     assert_success(wt(&repo, &["fork", "feature", "--staged"]));
 
     assert_eq!(stdout(git_output(&feature, &["status", "--short"])), "M  README.md\n");
-    assert_eq!(fs::read_to_string(feature.join("README.md")).unwrap(), "hello\nstaged change\n");
+    assert_eq!(read_text(feature.join("README.md")), "hello\nstaged change\n");
     assert_eq!(stdout(git_output(&repo, &["status", "--short"])), "M  README.md\n");
 }
 
@@ -44,8 +44,8 @@ fn respects_pathspecs_after_double_dash() {
 
     assert_success(wt(&repo, &["fork", "feature", "--", "README.md"]));
 
-    assert_eq!(fs::read_to_string(feature.join("README.md")).unwrap(), "hello\nreadme change\n");
-    assert_eq!(fs::read_to_string(feature.join("OTHER.md")).unwrap(), "other\n");
+    assert_eq!(read_text(feature.join("README.md")), "hello\nreadme change\n");
+    assert_eq!(read_text(feature.join("OTHER.md")), "other\n");
 }
 
 #[test]
@@ -61,6 +61,6 @@ fn ignores_inherited_git_hook_env() {
         &[("GIT_DIR", ".git"), ("GIT_INDEX_FILE", ".git/index")],
     ));
 
-    assert_eq!(fs::read_to_string(feature.join("README.md")).unwrap(), "hello\nsource change\n");
+    assert_eq!(read_text(feature.join("README.md")), "hello\nsource change\n");
     assert_eq!(stdout(git_output(&feature, &["status", "--short"])), " M README.md\n");
 }

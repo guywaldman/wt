@@ -50,7 +50,7 @@ pub fn assert_init_wrapper_switches_cwd(shell: &str, script: &str) {
         .output()
         .unwrap();
 
-    assert_eq!(stdout(output).trim(), fs::canonicalize(feature).unwrap().display().to_string());
+    assert_path_eq(stdout(output).trim(), feature);
 }
 
 pub fn command_exists(command: &str) -> bool {
@@ -97,6 +97,43 @@ pub fn stdout(output: Output) -> String {
 
 pub fn stderr(output: Output) -> String {
     String::from_utf8(output.stderr).unwrap()
+}
+
+pub fn read_text(path: impl AsRef<Path>) -> String {
+    fs::read_to_string(path).unwrap().replace("\r\n", "\n")
+}
+
+pub fn assert_path_eq(actual: &str, expected: impl AsRef<Path>) {
+    let actual = fs::canonicalize(actual).unwrap();
+    let expected = fs::canonicalize(expected).unwrap();
+    assert_eq!(
+        actual,
+        expected,
+        "path mismatch:\nactual: {}\nexpected: {}",
+        actual.display(),
+        expected.display()
+    );
+}
+
+pub fn assert_worktree_list_contains(list: &str, branch: &str, expected_path: impl AsRef<Path>) {
+    let expected_path = fs::canonicalize(expected_path).unwrap();
+
+    for line in list.lines() {
+        let Some((actual_branch, actual_path)) = line.split_once('\t') else {
+            continue;
+        };
+        if actual_branch != branch {
+            continue;
+        }
+        if fs::canonicalize(actual_path).is_ok_and(|actual_path| actual_path == expected_path) {
+            return;
+        }
+    }
+
+    panic!(
+        "missing worktree list row for {branch} at {}\nlist:\n{list}",
+        expected_path.display()
+    );
 }
 
 fn wt_bin() -> PathBuf {
